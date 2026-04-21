@@ -11,33 +11,35 @@ class RealFileManager(fileops.FileManager):
     def update_display(self):
         render_directory()
     def show_error(self, mymessage, mytitle="Error"):
-        messagebox.showerror(title=mytitle, message=mymessage)
+        messagebox.showerror(title=mytitle, message=mymessage, parent=root)
     def confirm_dialog(self, string):
-        return messagebox.askyesno(title="Are you sure?", message=string)
+        return messagebox.askyesno(title="Are you sure?", message=string, parent=root)
     
 RFM = RealFileManager() # for reference
 
 # functions for buttons
 def create_me():
     # prompt file or directory
-    wants_file = messagebox.askyesnocancel(title="Create what?", message="Do you want to create a file? (Choose 'No' to create a directory.)")
+    wants_file = messagebox.askyesnocancel(title="Create what?", message="Do you want to create a file? (Choose 'No' to create a directory.)", parent=root)
     # sad path go away
     if wants_file == None: return
     # elif file, prompt filename, content
     if wants_file:
-        name = simpledialog.askstring(title="New File Name", prompt="Enter a name for your new file. (Include the file extension.)")
+        name = simpledialog.askstring(title="New File Name", prompt="Enter a name for your new file. (Include the file extension.)", parent=root)
+        if name == None: return # handle sad path
         my_path = os.path.join(os.getcwd(), name)
-        my_content = simpledialog.askstring(title="New file content", prompt="Enter content for your new file.")
+        my_content = simpledialog.askstring(title="New file content", prompt="Enter content for your new file.", parent=root)
         RFM.create_file(path=my_path, content=my_content)
     # else: directory, prompt name
     else:
-        name = simpledialog.askstring(title="New Directory Name", prompt="Enter a name for your new directory.")
+        name = simpledialog.askstring(title="New Directory Name", prompt="Enter a name for your new directory.", parent=root)
+        if name == None: return # sad path
         try:
             os.mkdir(name) # nowhere else needs safe_mkdir, so I think this is okay?
         except PermissionError:
-            messagebox.showerror(title="Permission Error", message="Cannot create directory in this location. Access is denied.")
+            messagebox.showerror(title="Permission Error", message="Cannot create directory in this location. Access is denied.", parent=root)
         except Exception as e:
-            messagebox.showerror(title="Error", message=str(e))
+            messagebox.showerror(title="Error", message=str(e), parent=root)
 
 def read_me():
     # prompt filename
