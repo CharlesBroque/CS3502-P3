@@ -29,9 +29,22 @@ def create_me():
     if wants_file:
         # ask for filename
         name = simpledialog.askstring(title="New File Name", prompt="Enter a name for your new file. (Include the file extension.)", parent=root)
-        if name is None or name == "": return # handle sad sequence
+        
+        # handle invalid name or cancel
+        if name is None or name == "":
+            messagebox.showinfo(title="File creation canceled", message=f"File was not created.")
+            return
+
         my_path = os.path.join(os.getcwd(), name) # desired file path
+        
+        ### TODO: replace this with Text ###
         my_content = simpledialog.askstring(title="New file content", prompt="Enter content for your new file.", parent=root)
+        
+        # canceled at content stage
+        if my_content is None:
+            messagebox.showinfo(title="File creation canceled", message=f"{name} was not created.")
+            return
+
         RFM.create_file(path=my_path, content=my_content)
         messagebox.showinfo(title="Operation Complete", message=f"File {name} created.", parent=root)
     # else: directory, prompt name
@@ -125,9 +138,28 @@ def update_me(): # variation on read_me()
 
 def delete_me():
     # prompt name
-    # check if file or directory
-    # process delete by case
-    pass
+    name = simpledialog.askstring(title="Delete File or Directory", prompt="Enter a file or directory to delete. (If it's file, don't forget the extension.)", parent=root)
+    if name is None or name == "": return # handle cancel
+
+    # check if file or directory, process delete
+    try:
+        if not os.path.exists(name): raise Exception(f"No such file or directory {name}")
+        really_do_it = messagebox.askyesno(title="Confirm deletion", message=f"Are you sure you want to delete {os.path.realpath(name)}?", parent=root)
+        if not really_do_it:
+            messagebox.showinfo(title="Delete operation canceled", message=f"{name} was not deleted.", parent=root)
+            return
+        if os.path.isdir(name):
+            os.rmdir(name)
+        elif os.path.isfile(name):
+            os.remove(name)
+        else:
+            # shouldn't be possible to get here
+            raise FileNotFoundError
+        messagebox.showinfo(title="File or directory deleted", message=f"{name} was deleted successfully.")
+        render_directory()
+    except Exception as e:
+        messagebox.showerror(title="Error", message=str(e), parent=root)
+
 def rename_me():
     # prompt name
     # determine if file or directory
