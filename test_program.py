@@ -21,21 +21,25 @@ RFM = RealFileManager() # for reference
 def create_me():
     # prompt file or directory
     wants_file = messagebox.askyesnocancel(title="Create what?", message="Do you want to create a file? (Choose 'No' to create a directory.)", parent=root)
-    # sad path go away
-    if wants_file == None: return
+    # handle cancel
+    if wants_file is None: return
     # elif file, prompt filename, content
     if wants_file:
+        # ask for filename
         name = simpledialog.askstring(title="New File Name", prompt="Enter a name for your new file. (Include the file extension.)", parent=root)
-        if name == None: return # handle sad path
-        my_path = os.path.join(os.getcwd(), name)
+        if name is None or name == "": return # handle sad sequence
+        my_path = os.path.join(os.getcwd(), name) # desired file path
         my_content = simpledialog.askstring(title="New file content", prompt="Enter content for your new file.", parent=root)
         RFM.create_file(path=my_path, content=my_content)
+        messagebox.showinfo(title="Operation Complete", message=f"File {name} created.", parent=root)
     # else: directory, prompt name
     else:
         name = simpledialog.askstring(title="New Directory Name", prompt="Enter a name for your new directory.", parent=root)
-        if name == None: return # sad path
+        if name is None: return # sad sequence
         try:
             os.mkdir(name) # nowhere else needs safe_mkdir, so I think this is okay?
+            RFM.update_display()
+            messagebox.showinfo(title="Operation Complete", message=f"Directory {name} created.", parent=root)
         except PermissionError:
             messagebox.showerror(title="Permission Error", message="Cannot create directory in this location. Access is denied.", parent=root)
         except Exception as e:
