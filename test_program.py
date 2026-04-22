@@ -47,8 +47,36 @@ def create_me():
 
 def read_me():
     # prompt filename
-    # open window
-    pass
+    filename = simpledialog.askstring(title="Read File", prompt="Enter a file name to read.", parent=root)
+    if filename is None or filename == "": return # handle cancel
+    try:
+        # open new window with label for file contents
+        read_window = Toplevel(root)
+        read_window.title(filename)
+        read_window.geometry("800x600")
+
+        # add text field and scrollbars (editing does nothing)
+        text = Text(read_window, height=500, width=600)
+        ys = ttk.Scrollbar(read_window, orient="vertical", command=text.yview)
+        xs = ttk.Scrollbar(read_window, orient="horizontal", command=text.xview)
+        text["yscrollcommand"] = ys.set; text["xscrollcommand"] = xs.set
+        text.grid(column=0, row=0, sticky=NSEW)
+        xs.grid(column=0, row=1, sticky=EW)
+        ys.grid(column=1, row=0, sticky=NS)
+        read_window.grid_columnconfigure(0, weight=1)
+        read_window.grid_rowconfigure(0, weight=1)
+
+        # read file
+        with open(filename, "r") as f:
+            text.insert("1.0", f.read())
+        text.configure(state="disabled") # prevent editing
+    except PermissionError:
+        messagebox.showerror(title="Permission Error", message="Cannot read this file. Access is denied.", parent=root)
+        read_window.destroy()
+    except Exception as e:
+        messagebox.showerror(title="Error", message=str(e), parent=root)
+        read_window.destroy()
+
 def update_me():
     # prompt filename
     # prompt new content
