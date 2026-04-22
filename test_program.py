@@ -2,7 +2,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox, simpledialog
 from functools import partial
-import os
+import os, stat
 import shutil
 import fileops
 
@@ -95,7 +95,20 @@ def read_me():
 def update_me(): # variation on read_me()
     # prompt filename
     filename = simpledialog.askstring(title="Update File", prompt="Enter a file name to update. (Don't forget the extension.)", parent=root)
-    if filename is None or filename == "": return # handle cancel
+    
+    # handle cancel
+    if filename is None: return
+    # handle bad filename
+    if filename == "": return
+    # handle unwritable
+    if not os.access(filename, os.W_OK):
+        messagebox.showwarning(title="Read-only file", message=f"{filename} is read-only and cannot be updated.", parent=root)
+        return
+    # handle unreadable
+    if not os.access(filename, os.r_OK):
+        messagebox.showwarning(title="Unreadable file", message=f"{filename} cannot be read. (Invalid read permissions.)", parent=root)
+        return
+    
     try:
         # open new window with label for file contents
         read_window = Toplevel(root)
@@ -149,7 +162,11 @@ def delete_me():
             messagebox.showinfo(title="Delete operation canceled", message=f"{name} was not deleted.", parent=root)
             return
         if os.path.isdir(name):
-            os.rmdir(name)
+            # weird hack from shutil documentation that makes shutil.rmtree work on read-only files
+            def remove_readonly(func, path, _):
+                os.chmod(path, stat.S_IWRITE)
+                func(path)
+            shutil.rmtree(name, onerror=remove_readonly)
         elif os.path.isfile(name):
             os.remove(name)
         else:
@@ -162,10 +179,31 @@ def delete_me():
 
 def rename_me():
     # prompt name
-    # determine if file or directory
-    # prompt new name
-    # change
-    pass
+    name = simpledialog.askstring(title="Rename File or Directory", prompt="Enter a file or directory to rename. (If it's file, don't forget the extension.)", parent=root)
+    if name is None or name == "": return # handle cancel
+    
+    try:
+        # make sure file or directory exists
+        if not os.path.exists(name): raise Exception(f"No such file or directory {name}")
+        
+        # prompt new name
+        new_name = simpledialog.askstring(title="New name", prompt=f"Enter a new name for {name}.", parent=root)
+        if new_name is None: # cancel
+            messagebox.showinfo(title="Rename operation canceled", message=f"{name} was not renamed.", parent=root)
+            return
+        if new_name == "": # empty name
+            messagebox.showerror(title="Rename operation canceled", message=f"{name} was not renamed. (Invalid rename.)", parent=root)
+            return
+        if os.path.exists(new_name): # name is occupied
+            messagebox.showerror(title="Rename operation canceled", message=f"{name} was not renamed. ({new_name} already exists.)", parent=root)
+            return
+        os.rename(name, new_name)
+        messagebox.showinfo(title="Rename operation completed", message=f"{name} was successfully renamed to {new_name}.", parent=root)
+        render_directory()
+
+    except Exception as e:
+        messagebox.showerror(title="Error", message=str(e), parent=root)
+
 def navigate_me():
     path = simpledialog.askstring(title="Where to?", prompt="Enter the name of a directory.")
     safe_chdir(path)
@@ -181,7 +219,7 @@ def safe_chdir(path):
     else:
         messagebox.showerror(title="Path error", message=f"No such path {path}")
 
-def render_directory():
+def render_directory(): ### TODO: replace with treeview? with stats?
     # clear current directory listing
     for w in dirnameFrame.winfo_children():
         w.destroy()
