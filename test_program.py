@@ -17,6 +17,8 @@ class RealFileManager(fileops.FileManager):
     
 RFM = RealFileManager() # for reference
 
+### TODO: bundle error handling? ###
+
 # functions for buttons
 def create_me():
     # prompt file or directory
@@ -55,7 +57,7 @@ def read_me():
         read_window.title(filename)
         read_window.geometry("800x600")
 
-        # add text field and scrollbars (editing does nothing)
+        # add text field and scrollbars
         text = Text(read_window, height=500, width=600)
         ys = ttk.Scrollbar(read_window, orient="vertical", command=text.yview)
         xs = ttk.Scrollbar(read_window, orient="horizontal", command=text.xview)
@@ -69,7 +71,7 @@ def read_me():
         # read file
         with open(filename, "r") as f:
             text.insert("1.0", f.read())
-        text.configure(state="disabled") # prevent editing
+        text.configure(state="disabled") # prevent editing of text field
     except PermissionError:
         messagebox.showerror(title="Permission Error", message="Cannot read this file. Access is denied.", parent=root)
         read_window.destroy()
@@ -77,16 +79,60 @@ def read_me():
         messagebox.showerror(title="Error", message=str(e), parent=root)
         read_window.destroy()
 
-def update_me():
+def update_me(): # variation on read_me()
     # prompt filename
-    # prompt new content
-    pass
+    filename = simpledialog.askstring(title="Update File", prompt="Enter a file name to update. (Don't forget the extension.)", parent=root)
+    if filename is None or filename == "": return # handle cancel
+    try:
+        # open new window with label for file contents
+        read_window = Toplevel(root)
+        read_window.title(filename)
+        read_window.geometry("800x600")
+
+        # add text field and scrollbars
+        text = Text(read_window, height=500, width=600)
+        ys = ttk.Scrollbar(read_window, orient="vertical", command=text.yview)
+        xs = ttk.Scrollbar(read_window, orient="horizontal", command=text.xview)
+        text["yscrollcommand"] = ys.set; text["xscrollcommand"] = xs.set
+        text.grid(column=0, row=0, sticky=NSEW)
+        xs.grid(column=0, row=1, sticky=EW)
+        ys.grid(column=1, row=0, sticky=NS)
+        read_window.grid_columnconfigure(0, weight=1)
+        read_window.grid_rowconfigure(0, weight=1)
+
+        # local save and exit function
+        def save_and_exit():
+            with open(filename, "w") as f:
+                my_text = text.get("1.0", "end-1c")
+                f.write(my_text)
+            read_window.destroy()
+            messagebox.showinfo(title="Save successful", message="Save completed successfully.", parent=root)
+
+        # add save button
+        save_button = ttk.Button(read_window, text="Save changes and exit", command=save_and_exit)
+        save_button.grid(column=0, row=2, pady=10)
+
+        # read file
+        with open(filename, "r") as f:
+            text.insert("1.0", f.read())
+
+    except PermissionError:
+        messagebox.showerror(title="Permission Error", message="Cannot read this file. Access is denied.", parent=root)
+        read_window.destroy()
+    except Exception as e:
+        messagebox.showerror(title="Error", message=str(e), parent=root)
+        read_window.destroy()
+
 def delete_me():
-    # prompt file or directory
+    # prompt name
+    # check if file or directory
+    # process delete by case
     pass
 def rename_me():
     # prompt name
     # determine if file or directory
+    # prompt new name
+    # change
     pass
 def navigate_me():
     path = simpledialog.askstring(title="Where to?", prompt="Enter the name of a directory.")
