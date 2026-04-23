@@ -2,7 +2,8 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox, simpledialog
 from functools import partial
-import os, stat
+import os, stat, errno
+from ctypes import get_errno
 import shutil
 import fileops
 
@@ -18,6 +19,21 @@ class RealFileManager(fileops.FileManager):
 RFM = RealFileManager() # for reference
 
 ### TODO: bundle error handling? ###
+def handle_error(error):
+    e = get_errno() # get this as soon as possible
+    if error is FileExistsError: # EEXIST
+        messagebox.showerror(title="File Exists Error", message="The file or directory you are trying to create already exists.", parent=root)
+        return
+    if error is FileNotFoundError: # ENOENT
+        messagebox.showerror(title="File Not Found Error", message="The file or directory you are trying to access does not exist.", parent=root)
+        return
+    if error is PermissionError: # EACCES
+        messagebox.showerror(title="Permission Error", message="Access to this file is forbidden by the file permissions.", parent=root)
+        return
+    else: # ENOSPC, EBUSY, EIO, EROFS, etc.
+        out = f"{errno.errcode(e)}: {os.strerror(e)}"
+        messagebox.showerror(title="Error", message=out, parent=root)
+        return
 
 # functions for buttons
 def create_me():
@@ -38,21 +54,23 @@ def create_me():
         my_path = os.path.join(os.getcwd(), name) # desired file path
         
         ### TODO: replace this with Text ###
-        my_content = simpledialog.askstring(title="New file content", prompt="Enter content for your new file.", parent=root)
+        my_content = simpledialog.askstring(title="New file content", prompt="Enter content for your new file. (You can always edit it later.)", parent=root)
         
         # canceled at content stage
         if my_content is None:
             messagebox.showinfo(title="File creation canceled", message=f"{name} was not created.")
             return
 
-        RFM.create_file(path=my_path, content=my_content)
-        messagebox.showinfo(title="Operation Complete", message=f"File {name} created.", parent=root)
+        if RFM.create_file(path=my_path, content=my_content):
+            messagebox.showinfo(title="Operation Complete", message=f"File {name} created.", parent=root)
+        else:
+            messagebox.showerror(title="File creation failed", message=f"{name} could not be created.")
     # else: directory, prompt name
     else:
         name = simpledialog.askstring(title="New Directory Name", prompt="Enter a name for your new directory.", parent=root)
         if name is None: return # sad sequence
         try:
-            os.mkdir(name) # nowhere else needs safe_mkdir, so I think this is okay?
+            os.makedirs(name) # nowhere else needs safe_mkdir, so I think this is okay?
             RFM.update_display()
             messagebox.showinfo(title="Operation Complete", message=f"Directory {name} created.", parent=root)
         except PermissionError:
@@ -62,7 +80,7 @@ def create_me():
 
 def read_me():
     # prompt filename
-    filename = simpledialog.askstring(title="Read File", prompt="Enter a file name to read.", parent=root)
+    filename = simpledialog.askstring(title="Read File", prompt="Enter a file name to read. (Don't forget the file extension.)", parent=root)
     if filename is None or filename == "": return # handle cancel
     try:
         # open new window with label for file contents
@@ -100,12 +118,18 @@ def update_me(): # variation on read_me()
     if filename is None: return
     # handle bad filename
     if filename == "": return
+    if os.path.isdir(filename): 
+        messagebox.showerror(title="Not a file", message=f"{filename} is a directory. (It does not have content to update.)", parent=root)
+        return
+    if not os.path.exists(filename):
+        messagebox.showerror(title="Nonexistent file", message=f"{filename} does not exist.", parent=root)
+        return
     # handle unwritable
     if not os.access(filename, os.W_OK):
         messagebox.showwarning(title="Read-only file", message=f"{filename} is read-only and cannot be updated.", parent=root)
         return
     # handle unreadable
-    if not os.access(filename, os.r_OK):
+    if not os.access(filename, os.R_OK):
         messagebox.showwarning(title="Unreadable file", message=f"{filename} cannot be read. (Invalid read permissions.)", parent=root)
         return
     
