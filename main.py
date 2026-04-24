@@ -244,7 +244,7 @@ def safe_chdir(path):
             messagebox.showerror(title="Permission error", message=f"Access to {path} is denied.")
         render_directory()
     else:
-        messagebox.showerror(title="Path error", message=f"No such path {path}")
+        messagebox.showerror(title="Path error", message=f"No such directory {path}")
 
 def render_directory(): ### TODO: replace with treeview? with stats?
     # clear current directory listing
