@@ -82,6 +82,9 @@ def read_me():
     # prompt filename
     filename = simpledialog.askstring(title="Read File", prompt="Enter a file name to read. (Don't forget the file extension.)", parent=root)
     if filename is None or filename == "": return # handle cancel
+    if os.path.isdir(filename):
+        messagebox.showerror(title="Not a file", message=f"Cannot read {filename} because it is a directory.")
+        return
     try:
         # open new window with label for file contents
         read_window = Toplevel(root)
